@@ -48,6 +48,11 @@ class ANetClassProject_YJCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* GrabPistolAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* FireAction;
+
+	//  meta = (AllowPrivateAccess = "true") : private 멤버를 에디터에 보이도록 하는 설정 
+	
 public:
 	ANetClassProject_YJCharacter();
 	
@@ -61,7 +66,9 @@ protected:
 	void Look(const FInputActionValue& Value);
 
 	void OnGrabPistol(const FInputActionValue& Value);
-
+	void MyTakePistol();	
+	void MyReleasePistol();
+	void OnFirePistol(const FInputActionValue& value);
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -92,6 +99,12 @@ public:
 	float GrabPistolDistance =300;
 
 	void AttachPistol(AActor* pistolActor);
+	void DetachPistol();
+
+	// 마우스왼버튼으로 총을 쏘기
+	// 총알이 부딪힌 곳에 총알자국을 표현하기
+	UPROPERTY(EditDefaultsOnly,Category=Pistol)
+	class UParticleSystem* BullectFX;
 	
 };
 
