@@ -29,4 +29,12 @@ public:
 
 	UPROPERTY()
 	class ANetClassProject_YJCharacter* Me;
+
+	UPROPERTY(EditDefaultsOnly)
+	class UAnimMontage* FireMontage;
+
+	void PlayFireAnimMontage();
+
+	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite)
+	float PitchAngle;
 };

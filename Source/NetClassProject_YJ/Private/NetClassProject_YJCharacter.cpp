@@ -13,6 +13,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "NetTpsPlayerAnim.h"
 #include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
@@ -250,6 +251,16 @@ void ANetClassProject_YJCharacter::OnFirePistol(const FInputActionValue& value)
 {
  
 	if(!bHasPistol) {return;}
+
+	UNetTpsPlayerAnim* anim = CastChecked<UNetTpsPlayerAnim>(GetMesh()->GetAnimInstance());
+	check(anim);
+
+	//캐스트하면서 동시에 체크도 !
+	
+	if(anim)
+	{
+		anim->PlayFireAnimMontage();
+	}
 	
 	FVector start = FollowCamera->GetComponentLocation();
 	FVector end = start+FollowCamera->GetForwardVector()*10000.f;
