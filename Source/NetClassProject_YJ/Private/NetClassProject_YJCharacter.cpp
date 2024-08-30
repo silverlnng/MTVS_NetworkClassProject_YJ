@@ -13,7 +13,9 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "MainWidget.h"
 #include "NetTpsPlayerAnim.h"
+#include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
@@ -83,6 +85,10 @@ void ANetClassProject_YJCharacter::BeginPlay()
 			//PistolList.Push(Actor);
 		}
 	}
+
+	InitMainWidget();
+
+	
 }
 
 
@@ -160,6 +166,19 @@ void ANetClassProject_YJCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
+void ANetClassProject_YJCharacter::InitMainWidget()
+{
+	MainWidget_UI = CreateWidget<UMainWidget>(GetWorld(),WBP_mainWidget);
+
+	//예외처리를 잘하기 !
+
+	if (MainWidget_UI)
+	{
+		MainWidget_UI->AddToViewport();
+		MainWidget_UI->SetActivePistolUI(false);
+		MainWidget_UI->InitBulletUI(MaxBullectCount);
+	}
+}
 void ANetClassProject_YJCharacter::OnGrabPistol(const FInputActionValue& Value)
 {
 	// 변수 bHasPistol 울 replicate해서 애니메이션을 동기화 시킬수있다
@@ -198,7 +217,7 @@ void ANetClassProject_YJCharacter::MyTakePistol()
 		// 총검사는 클라이언트 쪽에서만 ! 총 부착은 서버에서 해야 모든 pc의 플레이어에게 동일하게 보일수있다
 
 		bHasPistol=true;
-			
+		MainWidget_UI->SetActivePistolUI(true);	
 		break; // 하나만 부착했음 다시 for문 반복할필요없음
 	}
 }
@@ -209,7 +228,7 @@ void ANetClassProject_YJCharacter::MyReleasePistol()
 	if (bHasPistol)
 	{
 		
-		
+		MainWidget_UI->SetActivePistolUI(false);
 		bHasPistol = false;
 	}
 	
@@ -247,6 +266,8 @@ void ANetClassProject_YJCharacter::DetachPistol()
 	}
 }
 
+
+
 void ANetClassProject_YJCharacter::OnFirePistol(const FInputActionValue& value)
 {
  
@@ -256,6 +277,12 @@ void ANetClassProject_YJCharacter::OnFirePistol(const FInputActionValue& value)
 	check(anim);
 
 	//캐스트하면서 동시에 체크도 !
+
+	if(curBullectCount<0){return;}
+	
+	curBullectCount--;
+	
+	if(MainWidget_UI) MainWidget_UI->RemoveBulletUI();
 	
 	if(anim)
 	{
@@ -274,5 +301,6 @@ void ANetClassProject_YJCharacter::OnFirePistol(const FInputActionValue& value)
 		FVector hitVec = hitResult.ImpactPoint;
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(),BullectFX,hitVec);
 	}
+
 	
 }

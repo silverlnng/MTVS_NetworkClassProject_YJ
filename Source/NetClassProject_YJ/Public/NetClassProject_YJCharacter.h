@@ -105,6 +105,15 @@ public:
 	// 총알이 부딪힌 곳에 총알자국을 표현하기
 	UPROPERTY(EditDefaultsOnly,Category=Pistol)
 	class UParticleSystem* BullectFX;
+
+	UPROPERTY(EditDefaultsOnly,Category=Pistol)
+	TSubclassOf<class UUserWidget> WBP_mainWidget;
+	UPROPERTY(EditDefaultsOnly,Category=Pistol)
+	class UMainWidget* MainWidget_UI;
+	void InitMainWidget();
+	UPROPERTY(EditDefaultsOnly,Category=Pistol)
+	int32 MaxBullectCount=10;
+	int32 curBullectCount=MaxBullectCount;
 	
 };
 
