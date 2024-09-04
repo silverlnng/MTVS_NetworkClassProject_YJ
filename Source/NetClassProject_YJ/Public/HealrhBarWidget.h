@@ -16,5 +16,6 @@ class NETCLASSPROJECT_YJ_API UHealrhBarWidget : public UUserWidget
 public:
 	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite,Category=HP)
 	float HP =1.f;
+
 	
 };

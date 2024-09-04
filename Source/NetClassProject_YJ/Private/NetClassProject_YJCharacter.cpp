@@ -19,6 +19,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/WidgetComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -72,7 +73,8 @@ ANetClassProject_YJCharacter::ANetClassProject_YJCharacter()
 
 	hpWidgetComp=CreateDefaultSubobject<UWidgetComponent>(TEXT("hpWidgetComp"));
 	hpWidgetComp->SetupAttachment(GetMesh());
-	
+
+	bReplicates = true;
 }
 
 void ANetClassProject_YJCharacter::BeginPlay()
@@ -97,6 +99,21 @@ void ANetClassProject_YJCharacter::BeginPlay()
 	
 }
 
+void ANetClassProject_YJCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	float hpPercent = CurHP / MaxHP;
+	if(MainWidget_UI)
+	{
+		MainWidget_UI->HP=hpPercent;
+	}
+	auto hpUI = Cast<UHealrhBarWidget>(hpWidgetComp->GetWidget());
+	if(hpUI)
+	{
+		hpUI->HP = hpPercent;
+	}
+	
+}
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -176,16 +193,25 @@ void ANetClassProject_YJCharacter::Look(const FInputActionValue& Value)
 
 void ANetClassProject_YJCharacter::InitMainWidget()
 {
-	MainWidget_UI = CreateWidget<UMainWidget>(GetWorld(),WBP_mainWidget);
+	//플레이어가 제어중일때만 처리
 
-	//예외처리를 잘하기 !
+	if(GetController()==nullptr || !GetController()->IsLocalController()) return;
 
-	if (MainWidget_UI)
+	if(GetController()&& GetController()->IsLocalController())
 	{
-		MainWidget_UI->AddToViewport();
-		MainWidget_UI->SetActivePistolUI(false);
-		MainWidget_UI->InitBulletUI(MaxBullectCount);
+		MainWidget_UI = CreateWidget<UMainWidget>(GetWorld(),WBP_mainWidget);
+
+		//예외처리를 잘하기 !
+
+		if (MainWidget_UI)
+		{
+			MainWidget_UI->AddToViewport();
+			MainWidget_UI->SetActivePistolUI(false);
+			MainWidget_UI->InitBulletUI(MaxBullectCount);
+		}
 	}
+	
+	
 }
 
 void ANetClassProject_YJCharacter::InitBullectWidget()
@@ -200,6 +226,7 @@ void ANetClassProject_YJCharacter::InitBullectWidget()
 	}
 	isReloading=false;
 }
+
 
 void ANetClassProject_YJCharacter::OnGrabPistol(const FInputActionValue& Value)
 {
@@ -326,6 +353,75 @@ void ANetClassProject_YJCharacter::OnFirePistol(const FInputActionValue& value)
 		anim->PlayFireAnimMontage();
 	}
 	
+	/*FVector start = FollowCamera->GetComponentLocation();
+	FVector end = start+FollowCamera->GetForwardVector()*10000.f;
+	FHitResult hitResult;
+	FCollisionQueryParams params;
+	params.AddIgnoredActor(this);
+	
+	bool hit =GetWorld()->LineTraceSingleByChannel(hitResult,start,end,ECC_Visibility,params);
+	if(hit)
+	{
+		FVector hitVec = hitResult.ImpactPoint;
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(),BullectFX,hitVec);
+		
+		auto otherPlayer =Cast<ANetClassProject_YJCharacter>(hitResult.GetActor());
+		
+		if(otherPlayer)
+		{
+			//Server_SetHP(otherPlayer);
+			otherPlayer->DamageProcess();
+			// 클라이언트 방에서 클라이언트가 다른 플레이어에게하는게 동기화가 안됨
+			// 레이쏘는 것자체를 서버에서 ???
+		}
+	}*/
+	ServerFire();
+}
+
+/*float ANetClassProject_YJCharacter::GetHP()
+{
+	return CurHP;
+}*/
+
+/*void ANetClassProject_YJCharacter::SetHP(float HP)
+{
+	CurHP=HP;
+	float hpPercent =CurHP/MaxHP;
+	//Cast<>()
+	if(MainWidget_UI)
+	{
+		MainWidget_UI->HP=hpPercent;
+	}
+	else
+	{
+		auto hpUI =Cast<UHealrhBarWidget>(hpWidgetComp->GetWidget());
+		hpUI->HP=hpPercent;
+	}
+}*/
+
+void ANetClassProject_YJCharacter::DamageProcess()
+{
+	//Server_SetHP();
+	//체력 감소
+	CurHP--;
+	if(CurHP<=0)
+	{
+		isDead=true;
+	}
+	// 맞은 대상이 상대방일 경우 데미지 처리
+	//Multicast_SetHP();
+}
+
+void ANetClassProject_YJCharacter::GetLifetimeReplicatedProps(
+	TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ANetClassProject_YJCharacter,CurHP);
+	DOREPLIFETIME(ANetClassProject_YJCharacter,isDead);
+}
+
+void ANetClassProject_YJCharacter::ServerFire_Implementation()
+{
 	FVector start = FollowCamera->GetComponentLocation();
 	FVector end = start+FollowCamera->GetForwardVector()*10000.f;
 	FHitResult hitResult;
@@ -337,7 +433,37 @@ void ANetClassProject_YJCharacter::OnFirePistol(const FInputActionValue& value)
 	{
 		FVector hitVec = hitResult.ImpactPoint;
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(),BullectFX,hitVec);
+		
+		auto otherPlayer =Cast<ANetClassProject_YJCharacter>(hitResult.GetActor());
+		
+		if(otherPlayer)
+		{
+			//Server_SetHP(otherPlayer);
+			otherPlayer->DamageProcess();
+			// 클라이언트 방에서 클라이언트가 다른 플레이어에게하는게 동기화가 안됨
+			// 레이쏘는 것자체를 서버에서 ???
+		}
 	}
-
 	
 }
+
+void ANetClassProject_YJCharacter::Server_SetHP_Implementation(ANetClassProject_YJCharacter* otherPlayer)
+{
+	otherPlayer->CurHP--;
+	if(otherPlayer->CurHP<=0)
+	{
+		otherPlayer->isDead=true;
+	}
+	Multicast_SetHP();
+}
+
+void ANetClassProject_YJCharacter::Multicast_SetHP_Implementation()
+{
+	float hpPercent = CurHP / MaxHP;
+	//MainWidget_UI 은 로컬만
+	
+	auto hpUI = Cast<UHealrhBarWidget>(hpWidgetComp->GetWidget());
+	hpUI->HP = hpPercent;
+	
+}
+

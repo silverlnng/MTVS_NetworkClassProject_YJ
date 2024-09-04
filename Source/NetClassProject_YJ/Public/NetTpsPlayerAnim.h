@@ -46,4 +46,7 @@ public:
 	// 제장전 애니메이션 실행 끝난뒤 실행시킬 Notify
 	UFUNCTION()
 	void AnimNotify_OnMyReloadFinish();
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category=MyAnimSetting)
+	bool isDead=false;
 };

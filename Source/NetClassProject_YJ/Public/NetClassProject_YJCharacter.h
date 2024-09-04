@@ -80,7 +80,7 @@ protected:
 	
 	// To add mapping context
 	virtual void BeginPlay();
-
+	virtual void Tick(float DeltaTime) override;
 public:
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
@@ -130,12 +130,33 @@ public:
 
 	// 체력
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category=HP)
-	int32 MaxHP =3;
-	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category=HP)
-	int32 CurHP = MaxHP;
+	float MaxHP =5;
+	
+	UPROPERTY(Replicated,VisibleAnywhere,BlueprintReadOnly,Category=HP)
+	float CurHP = MaxHP;
 
+	/*__declspec(property(get = GetHP,put = SetHP)) float HP;
+	float GetHP();
+	void SetHP(float HP);*/
+
+	// __declspec 으로 선언으로 자동으로 HP = HP-1; 이런식으로 값을 set 하면 자동으로 선언한 SetHP 함수를 불러옴 
+	
 	UPROPERTY(VisibleAnywhere)
 	class UWidgetComponent* hpWidgetComp;
+
+	void DamageProcess();
 	
+	UPROPERTY(Replicated,EditDefaultsOnly,BlueprintReadOnly,Category=HP)
+	bool isDead=false;
+
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
+	UFUNCTION(Server,Unreliable)
+	void ServerFire();
+	UFUNCTION(Server,Unreliable)
+	void Server_SetHP(ANetClassProject_YJCharacter* otherPlayer);
+	UFUNCTION(NetMulticast,Unreliable)
+	void Multicast_SetHP();
 };
+
 

@@ -28,6 +28,7 @@ void UNetTpsPlayerAnim::NativeUpdateAnimation(float DeltaSeconds)
 	bHasPistol = Me->bHasPistol;
 
 	PitchAngle = -1*Me->GetBaseAimRotation().Pitch;
+	isDead = Me->isDead;
 }
 
 void UNetTpsPlayerAnim::PlayFireAnimMontage()
