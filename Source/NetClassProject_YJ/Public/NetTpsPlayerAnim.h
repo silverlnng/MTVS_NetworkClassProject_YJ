@@ -30,11 +30,20 @@ public:
 	UPROPERTY()
 	class ANetClassProject_YJCharacter* Me;
 
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly,Category="Animation")
 	class UAnimMontage* FireMontage;
 
 	void PlayFireAnimMontage();
 
 	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite)
 	float PitchAngle;
+
+	// 재장전 몽타주 - 재장전 애니메이션을 재생
+	UPROPERTY(EditDefaultsOnly,Category="Animation")
+	class UAnimMontage* ReloadMontage;
+	void PlayReloadAnimMontage();
+
+	// 제장전 애니메이션 실행 끝난뒤 실행시킬 Notify
+	UFUNCTION()
+	void AnimNotify_OnMyReloadFinish();
 };

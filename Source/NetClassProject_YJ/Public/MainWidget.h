@@ -18,6 +18,9 @@ public:
 	UPROPERTY(EditDefaultsOnly,meta=(BindWidget))
 	class UImage* Img_CrossHair;
 
+	UPROPERTY(EditDefaultsOnly,meta=(BindWidget))
+	class UProgressBar* PB_HealthBar;
+	
 	void SetActivePistolUI(bool value);
 
 	UPROPERTY(meta=(BindWidget))
@@ -33,7 +36,11 @@ public:
 	void AddBulletUI();
 
 	void RemoveBulletUI();
+	
+	void RemoveAllBulletUI();
 
 	int32 MaxCol =5;
-	
+
+	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite,Category=HP)
+	float HP =1.f;
 };

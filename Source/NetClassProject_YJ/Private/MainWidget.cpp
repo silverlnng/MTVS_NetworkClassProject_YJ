@@ -43,7 +43,7 @@ void UMainWidget::AddBulletUI()
 	int32 now = GridPanel_Bullect->GetChildrenCount();
 	int col = now%MaxCol;
 	int row = now/MaxCol;
-	GridPanel_Bullect->AddChildToUniformGrid(bullectUI,col,row);
+	GridPanel_Bullect->AddChildToUniformGrid(bullectUI,row,col);
 	
 }
 
@@ -51,4 +51,16 @@ void UMainWidget::RemoveBulletUI()
 {
 	if(GridPanel_Bullect->GetChildrenCount()<=0) return; 
 	GridPanel_Bullect->RemoveChildAt(GridPanel_Bullect->GetChildrenCount()-1);
+}
+
+void UMainWidget::RemoveAllBulletUI()
+{
+	// 일단 먼저 만들기
+
+	int32 now = GridPanel_Bullect->GetChildrenCount();
+    for(auto bullectWidget : GridPanel_Bullect->GetAllChildren())
+    {
+        GridPanel_Bullect->RemoveChild(bullectWidget);
+    }
+	
 }

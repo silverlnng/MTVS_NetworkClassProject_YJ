@@ -12,10 +12,12 @@
 #include "GameFramework/Controller.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "HealrhBarWidget.h"
 #include "InputActionValue.h"
 #include "MainWidget.h"
 #include "NetTpsPlayerAnim.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/WidgetComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
@@ -67,6 +69,10 @@ ANetClassProject_YJCharacter::ANetClassProject_YJCharacter()
 	HandComp->SetRelativeLocationAndRotation(FVector(-15,0,5),FRotator(0,90,0));
 	// (X=-15.000000,Y=0.000000,Z=5.000000)
 	// (Pitch=0.000000,Yaw=89.999999,Roll=0.000000)
+
+	hpWidgetComp=CreateDefaultSubobject<UWidgetComponent>(TEXT("hpWidgetComp"));
+	hpWidgetComp->SetupAttachment(GetMesh());
+	
 }
 
 void ANetClassProject_YJCharacter::BeginPlay()
@@ -123,6 +129,8 @@ void ANetClassProject_YJCharacter::SetupPlayerInputComponent(UInputComponent* Pl
 		EnhancedInputComponent->BindAction(GrabPistolAction, ETriggerEvent::Started, this, &ANetClassProject_YJCharacter::OnGrabPistol);
 		
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &ANetClassProject_YJCharacter::OnFirePistol);
+		
+		EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Started, this, &ANetClassProject_YJCharacter::OnReloadPistol);
 	}
 	else
 	{
@@ -179,6 +187,20 @@ void ANetClassProject_YJCharacter::InitMainWidget()
 		MainWidget_UI->InitBulletUI(MaxBullectCount);
 	}
 }
+
+void ANetClassProject_YJCharacter::InitBullectWidget()
+{
+	curBullectCount=MaxBullectCount;
+    
+	MainWidget_UI->RemoveAllBulletUI();
+    
+	for(int i=0;i<MaxBullectCount;i++)  
+	{
+		MainWidget_UI->AddBulletUI();
+	}
+	isReloading=false;
+}
+
 void ANetClassProject_YJCharacter::OnGrabPistol(const FInputActionValue& Value)
 {
 	// 변수 bHasPistol 울 replicate해서 애니메이션을 동기화 시킬수있다
@@ -191,6 +213,18 @@ void ANetClassProject_YJCharacter::OnGrabPistol(const FInputActionValue& Value)
 		MyTakePistol();
 	}
 }
+
+void ANetClassProject_YJCharacter::OnReloadPistol(const FInputActionValue& Value)
+{
+    if(!bHasPistol || isReloading ){return;}
+
+	// 애니메이션을 재생
+	auto anim =Cast<UNetTpsPlayerAnim>(GetMesh()->GetAnimInstance());
+	// 재생하는 애니메이션 notify 에서 chrlghk wkrdjq
+	anim->PlayReloadAnimMontage();
+	isReloading=true;
+}
+
 
 void ANetClassProject_YJCharacter::MyTakePistol()
 {
@@ -224,6 +258,9 @@ void ANetClassProject_YJCharacter::MyTakePistol()
 
 void ANetClassProject_YJCharacter::MyReleasePistol()
 {
+	//재장전중이면 총을 버릴수없다
+	if(!bHasPistol||isReloading){return;}
+	
 	// 이미 잡은상태에서는 놓아야함
 	if (bHasPistol)
 	{
@@ -271,7 +308,7 @@ void ANetClassProject_YJCharacter::DetachPistol()
 void ANetClassProject_YJCharacter::OnFirePistol(const FInputActionValue& value)
 {
  
-	if(!bHasPistol) {return;}
+	if(!bHasPistol ||isReloading || !GrabPistolActor) {return;}
 
 	UNetTpsPlayerAnim* anim = CastChecked<UNetTpsPlayerAnim>(GetMesh()->GetAnimInstance());
 	check(anim);

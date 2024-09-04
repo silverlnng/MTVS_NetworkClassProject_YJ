@@ -37,3 +37,17 @@ void UNetTpsPlayerAnim::PlayFireAnimMontage()
 		Montage_Play(FireMontage);
 	}
 }
+
+void UNetTpsPlayerAnim::PlayReloadAnimMontage()
+{
+	if(bHasPistol && ReloadMontage)
+	{
+		Montage_Play(ReloadMontage);
+	}
+}
+//
+void UNetTpsPlayerAnim::AnimNotify_OnMyReloadFinish()
+{
+	// 총알 ui를 초기화
+	Me->InitBullectWidget();
+}

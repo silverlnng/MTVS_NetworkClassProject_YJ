@@ -50,6 +50,9 @@ class ANetClassProject_YJCharacter : public ACharacter
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* FireAction;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+    UInputAction* ReloadAction;
 
 	//  meta = (AllowPrivateAccess = "true") : private 멤버를 에디터에 보이도록 하는 설정 
 	
@@ -69,6 +72,8 @@ protected:
 	void MyTakePistol();	
 	void MyReleasePistol();
 	void OnFirePistol(const FInputActionValue& value);
+	void OnReloadPistol(const FInputActionValue& value);
+	
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -108,12 +113,29 @@ public:
 
 	UPROPERTY(EditDefaultsOnly,Category=Pistol)
 	TSubclassOf<class UUserWidget> WBP_mainWidget;
+	
 	UPROPERTY(EditDefaultsOnly,Category=Pistol)
 	class UMainWidget* MainWidget_UI;
+	
 	void InitMainWidget();
+
+	void InitBullectWidget();
+
+	// 재장전 중인지를 기억하기
+	bool isReloading=false;
+	
 	UPROPERTY(EditDefaultsOnly,Category=Pistol)
 	int32 MaxBullectCount=10;
 	int32 curBullectCount=MaxBullectCount;
+
+	// 체력
+	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category=HP)
+	int32 MaxHP =3;
+	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category=HP)
+	int32 CurHP = MaxHP;
+
+	UPROPERTY(VisibleAnywhere)
+	class UWidgetComponent* hpWidgetComp;
 	
 };
 
