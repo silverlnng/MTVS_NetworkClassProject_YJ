@@ -15,6 +15,7 @@
 #include "HealrhBarWidget.h"
 #include "InputActionValue.h"
 #include "MainWidget.h"
+#include "NetClassProject_YJ.h"
 #include "NetTpsPlayerAnim.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/WidgetComponent.h"
@@ -75,6 +76,7 @@ ANetClassProject_YJCharacter::ANetClassProject_YJCharacter()
 	hpWidgetComp->SetupAttachment(GetMesh());
 
 	bReplicates = true;
+	PrimaryActorTick.bCanEverTick = true;
 }
 
 void ANetClassProject_YJCharacter::BeginPlay()
@@ -112,7 +114,7 @@ void ANetClassProject_YJCharacter::Tick(float DeltaTime)
 	{
 		hpUI->HP = hpPercent;
 	}
-	
+	PrintNetLog();
 }
 
 
@@ -410,6 +412,18 @@ void ANetClassProject_YJCharacter::DamageProcess()
 	}
 	// 맞은 대상이 상대방일 경우 데미지 처리
 	//Multicast_SetHP();
+}
+
+void ANetClassProject_YJCharacter::PrintNetLog()
+{
+	const FString constStr =GetNetConnection()!=nullptr ? TEXT("Valid NetConnection") :TEXT("InValid NetConnection");
+
+	const FString ownerName = GetOwner()!=nullptr ? GetOwner()->GetName() :TEXT("No Owner");
+	//const FString RemoteRoleTest =
+	const FString logStr = FString::Printf(TEXT("NetConnection :%s \n  OwnerName : %s \n Local Role :%s \n RemoteRole:%s"),*constStr,*ownerName,*LOCALROLE,*REMOTEROLE);
+	
+	DrawDebugString(GetWorld(),GetActorLocation()+FVector::UpVector*100,logStr,nullptr,FColor::Red,0,true,1);
+	
 }
 
 void ANetClassProject_YJCharacter::GetLifetimeReplicatedProps(

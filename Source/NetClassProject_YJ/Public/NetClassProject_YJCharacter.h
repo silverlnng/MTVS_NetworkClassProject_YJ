@@ -146,6 +146,9 @@ public:
 
 	void DamageProcess();
 	
+	// 네트워크 상태로그를 출력을 할 함수
+	void PrintNetLog();
+	
 	UPROPERTY(Replicated,EditDefaultsOnly,BlueprintReadOnly,Category=HP)
 	bool isDead=false;
 
