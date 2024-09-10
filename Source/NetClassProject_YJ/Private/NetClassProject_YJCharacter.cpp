@@ -75,8 +75,9 @@ ANetClassProject_YJCharacter::ANetClassProject_YJCharacter()
 	hpWidgetComp=CreateDefaultSubobject<UWidgetComponent>(TEXT("hpWidgetComp"));
 	hpWidgetComp->SetupAttachment(GetMesh());
 
-	bReplicates = true;
 	PrimaryActorTick.bCanEverTick = true;
+	bReplicates = true;
+	SetReplicateMovement(true);
 }
 
 void ANetClassProject_YJCharacter::BeginPlay()
@@ -218,15 +219,10 @@ void ANetClassProject_YJCharacter::InitMainWidget()
 
 void ANetClassProject_YJCharacter::InitBullectWidget()
 {
-	curBullectCount=MaxBullectCount;
-    
-	MainWidget_UI->RemoveAllBulletUI();
-    
-	for(int i=0;i<MaxBullectCount;i++)  
-	{
-		MainWidget_UI->AddBulletUI();
-	}
-	isReloading=false;
+	//curBullectCount=MaxBullectCount;
+	//isReloading=false;
+	serverRPC_InitBullect();
+	
 }
 
 
@@ -248,10 +244,11 @@ void ANetClassProject_YJCharacter::OnReloadPistol(const FInputActionValue& Value
     if(!bHasPistol || isReloading ){return;}
 
 	// 애니메이션을 재생
-	auto anim =Cast<UNetTpsPlayerAnim>(GetMesh()->GetAnimInstance());
+	/*auto anim =Cast<UNetTpsPlayerAnim>(GetMesh()->GetAnimInstance());
 	// 재생하는 애니메이션 notify 에서 chrlghk wkrdjq
 	anim->PlayReloadAnimMontage();
-	isReloading=true;
+	isReloading=true;*/
+	ServerRPC_Reload();
 }
 
 
@@ -262,7 +259,7 @@ void ANetClassProject_YJCharacter::MyTakePistol()
 	// 잡은총은 기억을 해야되고 , 다른플레이어가 잡은 총은 못잡도록
 	// 총의 owner를 설정하기 => 액터의 owner는  controller 으로 설정하기 . actor의 owner는 actor가 아니다
 		
-	for (AActor* pistol : PistolList)
+	/*for (AActor* pistol : PistolList)
 	{
 		// 총목록을 검사해서 => 나와 총과의 거리가 GrabPistolDistance 이하 => 소유자가 없는 총이면
 		// 총을 기억하고 => 그총의 소유자를 나로 => 총을 나의 HandComp 에 부착하기
@@ -282,12 +279,13 @@ void ANetClassProject_YJCharacter::MyTakePistol()
 		bHasPistol=true;
 		MainWidget_UI->SetActivePistolUI(true);	
 		break; // 하나만 부착했음 다시 for문 반복할필요없음
-	}
+	}*/
+	ServeRPC_TakeGun();
 }
 
 void ANetClassProject_YJCharacter::MyReleasePistol()
 {
-	//재장전중이면 총을 버릴수없다
+	/*//재장전중이면 총을 버릴수없다
 	if(!bHasPistol||isReloading){return;}
 	
 	// 이미 잡은상태에서는 놓아야함
@@ -304,7 +302,8 @@ void ANetClassProject_YJCharacter::MyReleasePistol()
 		DetachPistol(); // Detatch 하기
 		GrabPistolActor->SetOwner(nullptr);
 		GrabPistolActor = nullptr;
-	}
+	}*/
+	ServerRPC_releasePistol();
 }
 
 
@@ -317,11 +316,18 @@ void ANetClassProject_YJCharacter::AttachPistol(AActor* pistolActor)
 	// AttachToComponent 를 컴포넌트 단위 인지 액터단위인지...???
 	mesh->AttachToComponent(HandComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	//pistolActor->AttachToComponent(HandComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+
+	// 멀티캐스트로 실행하지만 IsLocallyControlled 으로 묶어서 로컬창에만 보임 
+	if (IsLocallyControlled() && MainWidget_UI)
+	{
+		MainWidget_UI->SetActivePistolUI(true);
+	}	
 }
 
-void ANetClassProject_YJCharacter::DetachPistol()
+void ANetClassProject_YJCharacter::DetachPistol(AActor* pistolActor)
 {
 	// 총을 가져와서 detach하기
+	GrabPistolActor = pistolActor;
 	auto* mesh =GrabPistolActor->GetComponentByClass<UStaticMeshComponent>();
 	check(mesh);  //==> 디버깅을 위해 일부러 오류발생시키기
 	if(mesh)
@@ -330,6 +336,10 @@ void ANetClassProject_YJCharacter::DetachPistol()
 		mesh->SetSimulatePhysics(true);
 		mesh->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
 	}
+	if (IsLocallyControlled() && MainWidget_UI)
+	{
+		MainWidget_UI->SetActivePistolUI(false);
+	}	
 }
 
 
@@ -338,46 +348,7 @@ void ANetClassProject_YJCharacter::OnFirePistol(const FInputActionValue& value)
 {
  
 	if(!bHasPistol ||isReloading || !GrabPistolActor) {return;}
-
-	UNetTpsPlayerAnim* anim = CastChecked<UNetTpsPlayerAnim>(GetMesh()->GetAnimInstance());
-	check(anim);
-
-	//캐스트하면서 동시에 체크도 !
-
-	if(curBullectCount<0){return;}
-	
-	curBullectCount--;
-	
-	if(MainWidget_UI) MainWidget_UI->RemoveBulletUI();
-	
-	if(anim)
-	{
-		anim->PlayFireAnimMontage();
-	}
-	
-	/*FVector start = FollowCamera->GetComponentLocation();
-	FVector end = start+FollowCamera->GetForwardVector()*10000.f;
-	FHitResult hitResult;
-	FCollisionQueryParams params;
-	params.AddIgnoredActor(this);
-	
-	bool hit =GetWorld()->LineTraceSingleByChannel(hitResult,start,end,ECC_Visibility,params);
-	if(hit)
-	{
-		FVector hitVec = hitResult.ImpactPoint;
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(),BullectFX,hitVec);
-		
-		auto otherPlayer =Cast<ANetClassProject_YJCharacter>(hitResult.GetActor());
-		
-		if(otherPlayer)
-		{
-			//Server_SetHP(otherPlayer);
-			otherPlayer->DamageProcess();
-			// 클라이언트 방에서 클라이언트가 다른 플레이어에게하는게 동기화가 안됨
-			// 레이쏘는 것자체를 서버에서 ???
-		}
-	}*/
-	ServerFire();
+	ServerRPC_Fire();
 }
 
 /*float ANetClassProject_YJCharacter::GetHP()
@@ -403,6 +374,7 @@ void ANetClassProject_YJCharacter::OnFirePistol(const FInputActionValue& value)
 
 void ANetClassProject_YJCharacter::DamageProcess()
 {
+	// 
 	//Server_SetHP();
 	//체력 감소
 	CurHP--;
@@ -426,16 +398,91 @@ void ANetClassProject_YJCharacter::PrintNetLog()
 	
 }
 
-void ANetClassProject_YJCharacter::GetLifetimeReplicatedProps(
-	TArray<class FLifetimeProperty>& OutLifetimeProps) const
+
+
+void ANetClassProject_YJCharacter::ClientRPC_TakeGun_Implementation(bool value)
 {
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ANetClassProject_YJCharacter,CurHP);
-	DOREPLIFETIME(ANetClassProject_YJCharacter,isDead);
+	if (IsLocallyControlled() && MainWidget_UI)
+	{
+		MainWidget_UI->SetActivePistolUI(value);
+	}	
 }
 
-void ANetClassProject_YJCharacter::ServerFire_Implementation()
+void ANetClassProject_YJCharacter::MulticastRPC_TakeGun_Implementation(AActor* pistolActor)
 {
+	AttachPistol(pistolActor);
+}
+
+void ANetClassProject_YJCharacter::ServeRPC_TakeGun_Implementation()
+{
+	for (AActor* pistol : PistolList)
+	{
+		// 총목록을 검사해서 => 나와 총과의 거리가 GrabPistolDistance 이하 => 소유자가 없는 총이면
+		// 총을 기억하고 => 그총의 소유자를 나로 => 총을 나의 HandComp 에 부착하기
+		float dist =FVector::Distance(GetActorLocation(),pistol->GetActorLocation());
+		float tempdist = GetDistanceTo(pistol);
+
+		if (tempdist > GrabPistolDistance) { continue; } // 조건해당안하니까 pass
+
+		if (nullptr != pistol->GetOwner()) { continue; } // 조건해당안하니까 pass
+
+		auto* pc = GetController<APlayerController>();
+		pistol->SetOwner(this); //액터의 owner 설정 액터로 가능.
+
+		
+		bHasPistol=true;
+		
+		/*if(IsLocallyControlled() && MainWidget_UI)
+		{
+			MainWidget_UI->SetActivePistolUI(true);	
+		}*/
+		//ClientRPC_TakeGun(true);
+		MulticastRPC_TakeGun(pistol);	
+		// 총검사는 클라이언트 쪽에서만 ! 총 부착은 서버에서 해야 모든 pc의 플레이어에게 동일하게 보일수있다
+
+		
+		break; // 하나만 부착했음 다시 for문 반복할필요없음
+	}
+}
+
+
+
+
+
+
+void ANetClassProject_YJCharacter::ServerRPC_releasePistol_Implementation()
+{
+	//재장전중이면 총을 버릴수없다
+	if(!bHasPistol||isReloading){return;}
+	
+	// 이미 잡은상태에서는 놓아야함
+	if (bHasPistol)
+	{
+		bHasPistol = false;
+		//MainWidget_UI->SetActivePistolUI(false);
+	}
+	//ClientRPC_TakeGun(false);
+	
+	if (GrabPistolActor) // 총을 오너를 지우고 ,잊고
+	{
+		//DetachPistol();
+		MulticastRPC_releasePistol(GrabPistolActor);// Detatch 하기
+		GrabPistolActor->SetOwner(nullptr);
+		GrabPistolActor = nullptr;
+	}
+}
+
+void ANetClassProject_YJCharacter::MulticastRPC_releasePistol_Implementation(AActor* pistolActor)
+{
+	DetachPistol(pistolActor);
+}
+
+void ANetClassProject_YJCharacter::ServerRPC_Fire_Implementation()
+{
+	if(curBullectCount<0){return;}
+	
+	curBullectCount--;
+	
 	FVector start = FollowCamera->GetComponentLocation();
 	FVector end = start+FollowCamera->GetForwardVector()*10000.f;
 	FHitResult hitResult;
@@ -443,10 +490,13 @@ void ANetClassProject_YJCharacter::ServerFire_Implementation()
 	params.AddIgnoredActor(this);
 	
 	bool hit =GetWorld()->LineTraceSingleByChannel(hitResult,start,end,ECC_Visibility,params);
+
+	MulticastRPC_Fire(hit,hitResult);
+	
 	if(hit)
 	{
-		FVector hitVec = hitResult.ImpactPoint;
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(),BullectFX,hitVec);
+		//FVector hitVec = hitResult.ImpactPoint;
+		//UGameplayStatics::SpawnEmitterAtLocation(GetWorld(),BullectFX,hitVec);
 		
 		auto otherPlayer =Cast<ANetClassProject_YJCharacter>(hitResult.GetActor());
 		
@@ -457,6 +507,27 @@ void ANetClassProject_YJCharacter::ServerFire_Implementation()
 			// 클라이언트 방에서 클라이언트가 다른 플레이어에게하는게 동기화가 안됨
 			// 레이쏘는 것자체를 서버에서 ???
 		}
+	}
+}
+
+void ANetClassProject_YJCharacter::MulticastRPC_Fire_Implementation(bool bHit,const FHitResult& hitInfo)
+{
+	if(IsLocallyControlled() && MainWidget_UI) MainWidget_UI->RemoveBulletUI();
+	
+	UNetTpsPlayerAnim* anim = CastChecked<UNetTpsPlayerAnim>(GetMesh()->GetAnimInstance());
+	check(anim);
+
+	//캐스트하면서 동시에 체크도 !
+	
+	if(anim)
+	{
+		anim->PlayFireAnimMontage();
+	}
+	if(bHit)
+	{
+		FVector hitVec = hitInfo.ImpactPoint;
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(),BullectFX,hitVec);
+		
 	}
 	
 }
@@ -480,4 +551,53 @@ void ANetClassProject_YJCharacter::Multicast_SetHP_Implementation()
 	hpUI->HP = hpPercent;
 	
 }
+
+void ANetClassProject_YJCharacter::GetLifetimeReplicatedProps(
+	TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ANetClassProject_YJCharacter,CurHP);
+	DOREPLIFETIME(ANetClassProject_YJCharacter,isDead);
+	DOREPLIFETIME(ANetClassProject_YJCharacter,bHasPistol);
+	DOREPLIFETIME(ANetClassProject_YJCharacter,curBullectCount);
+	DOREPLIFETIME(ANetClassProject_YJCharacter,isReloading);
+}
+
+
+
+void ANetClassProject_YJCharacter::ServerRPC_Reload_Implementation()
+{
+	isReloading=true;
+	MulticastRPC_Reload();
+}
+
+void ANetClassProject_YJCharacter::MulticastRPC_Reload_Implementation()
+{
+	auto anim =Cast<UNetTpsPlayerAnim>(GetMesh()->GetAnimInstance());
+	// 재생하는 애니메이션 notify 에서 
+	anim->PlayReloadAnimMontage(); // InitBullect 을 실행하게 됨 
+}
+void ANetClassProject_YJCharacter::serverRPC_InitBullect_Implementation()
+{
+	curBullectCount=MaxBullectCount;
+	isReloading=false;
+	ClientRPC_Reload();
+}
+
+void ANetClassProject_YJCharacter::ClientRPC_Reload_Implementation()
+{
+	if(IsLocallyControlled()&&MainWidget_UI)
+	{
+		MainWidget_UI->RemoveAllBulletUI();
+	}
+    
+	for(int i=0;i<MaxBullectCount;i++)  
+	{
+		if(IsLocallyControlled()&&MainWidget_UI)
+		{
+			MainWidget_UI->AddBulletUI();
+		}
+	}
+}
+
 

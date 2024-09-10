@@ -87,7 +87,7 @@ public:
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
-	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite)
+	UPROPERTY(Replicated,EditDefaultsOnly,BlueprintReadWrite)
 	bool bHasPistol;
 
 	// 태어날때 부터 총의목록을 
@@ -104,7 +104,7 @@ public:
 	float GrabPistolDistance =300;
 
 	void AttachPistol(AActor* pistolActor);
-	void DetachPistol();
+	void DetachPistol(AActor* pistolActor);
 
 	// 마우스왼버튼으로 총을 쏘기
 	// 총알이 부딪힌 곳에 총알자국을 표현하기
@@ -122,10 +122,12 @@ public:
 	void InitBullectWidget();
 
 	// 재장전 중인지를 기억하기
+	UPROPERTY(Replicated)
 	bool isReloading=false;
 	
 	UPROPERTY(EditDefaultsOnly,Category=Pistol)
 	int32 MaxBullectCount=10;
+	UPROPERTY(Replicated)
 	int32 curBullectCount=MaxBullectCount;
 
 	// 체력
@@ -148,18 +150,47 @@ public:
 	
 	// 네트워크 상태로그를 출력을 할 함수
 	void PrintNetLog();
-	
 	UPROPERTY(Replicated,EditDefaultsOnly,BlueprintReadOnly,Category=HP)
 	bool isDead=false;
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UFUNCTION(Server,Unreliable)
-	void ServerFire();
+	
 	UFUNCTION(Server,Unreliable)
 	void Server_SetHP(ANetClassProject_YJCharacter* otherPlayer);
 	UFUNCTION(NetMulticast,Unreliable)
 	void Multicast_SetHP();
+	
+	///////////////////////////////////////////////
+	UFUNCTION(Server,Reliable)
+	void ServeRPC_TakeGun(); // 총잡았다는걸 서버에 알리기
+
+	UFUNCTION(Client,Reliable)
+	void ClientRPC_TakeGun(bool value);
+	
+	UFUNCTION(NetMulticast,Reliable)
+	void MulticastRPC_TakeGun(AActor* pistolActor);
+
+	UFUNCTION(Server,Unreliable)
+	void ServerRPC_releasePistol();
+
+	UFUNCTION(NetMulticast,Unreliable)
+	void MulticastRPC_releasePistol(AActor* pistolActor);
+
+
+	UFUNCTION(Server,Unreliable)
+	void ServerRPC_Fire();
+	UFUNCTION(NetMulticast,Unreliable)
+	void MulticastRPC_Fire(bool bHit,const FHitResult& hitInfo);
+
+	UFUNCTION(Server,Reliable)
+	void ServerRPC_Reload();
+	UFUNCTION(Client,Reliable)
+	void ClientRPC_Reload();	
+	UFUNCTION(NetMulticast,Unreliable)
+	void MulticastRPC_Reload();
+	UFUNCTION(Server,Unreliable)
+	void serverRPC_InitBullect();
 };
 
 
