@@ -3,8 +3,18 @@
 
 #include "MainWidget.h"
 
+#include "NetPlayerController.h"
+#include "Components/Button.h"
+#include "Components/HorizontalBox.h"
 #include "Components/Image.h"
 #include "Components/UniformGridPanel.h"
+
+void UMainWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	btn_Retry->OnClicked.AddDynamic(this,&UMainWidget::OnRetry);
+	btn_Exit->OnClicked.AddDynamic(this,&UMainWidget::OnExit);
+}
 
 void UMainWidget::SetActivePistolUI(bool value)
 {
@@ -24,6 +34,8 @@ void UMainWidget::SetActivePistolUI(bool value)
 
 void UMainWidget::InitBulletUI(int32 maxBullectCount)
 {
+	RemoveAllBulletUI();
+	
 	for (int32 i = 0; i < maxBullectCount; i++)
 	{
 		auto* bullectUI=CreateWidget(GetWorld(),BullectUIFactory);
@@ -63,4 +75,34 @@ void UMainWidget::RemoveAllBulletUI()
         GridPanel_Bullect->RemoveChild(bullectWidget);
     }
 	
+}
+
+void UMainWidget::PlayDamageAnimation()
+{
+	if(DamageUIAni)
+	{
+		PlayAnimation(DamageUIAni);
+	}
+}
+
+void UMainWidget::OnRetry()
+{
+	// 메인위젯에서 컨트롤러 가져오기
+	auto pc =GetWorld()->GetFirstPlayerController<ANetPlayerController>();
+
+	if(pc)
+	{
+		pc->SetShowMouseCursor(false);
+
+		// 여기서 관전자 모드 로 실행되게
+		pc->ServerRPC_ChangeToSpectator();
+		//pc->ServerRPC_RespawnPlayer();
+	}
+	
+	//게임종료 안보이도록 
+	GameOverUI->SetVisibility(ESlateVisibility::Hidden);
+}
+
+void UMainWidget::OnExit()
+{
 }

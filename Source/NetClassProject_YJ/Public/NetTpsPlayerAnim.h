@@ -49,4 +49,7 @@ public:
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category=MyAnimSetting)
 	bool isDead=false;
+
+	UFUNCTION()
+	void AnimNotify_DieEnd();
 };

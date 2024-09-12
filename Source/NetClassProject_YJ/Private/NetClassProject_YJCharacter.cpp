@@ -16,8 +16,10 @@
 #include "InputActionValue.h"
 #include "MainWidget.h"
 #include "NetClassProject_YJ.h"
+#include "NetPlayerController.h"
 #include "NetTpsPlayerAnim.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/HorizontalBox.h"
 #include "Components/WidgetComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
@@ -85,6 +87,8 @@ void ANetClassProject_YJCharacter::BeginPlay()
 	// Call the base class  
 	Super::BeginPlay();
 
+	PRINTLOG(TEXT("[%s] BeginPlay"),Controller?TEXT("player"):TEXT("Not player"));
+	
 	//UGameplayStatics::GetAllActorsOfClassWithTag(GetWorld(),AActor::StaticClass(),TEXT("Pistol"),PistolList);
 	
 	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
@@ -96,8 +100,11 @@ void ANetClassProject_YJCharacter::BeginPlay()
 			//PistolList.Push(Actor);
 		}
 	}
-
-	InitMainWidget();
+	// 컨트롤러를 가지고있고 서버가 아닐때 위젯생성
+	if(IsLocallyControlled() && !HasAuthority())
+	{
+		InitMainWidget();
+	}
 
 	
 }
@@ -105,17 +112,21 @@ void ANetClassProject_YJCharacter::BeginPlay()
 void ANetClassProject_YJCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	float hpPercent = CurHP / MaxHP;
-	if(MainWidget_UI)
-	{
-		MainWidget_UI->HP=hpPercent;
-	}
-	auto hpUI = Cast<UHealrhBarWidget>(hpWidgetComp->GetWidget());
-	if(hpUI)
-	{
-		hpUI->HP = hpPercent;
-	}
+	
 	PrintNetLog();
+
+	// hp ui 빌보드로 만들기
+		// GetVisibleFlag 보일때만 작동
+	if(hpWidgetComp && hpWidgetComp->GetVisibleFlag())
+	{
+		// 카메라 위치
+		// 카메라 와 체력바의 방향벡터
+		FVector camLoc = UGameplayStatics::GetPlayerCameraManager(GetWorld(),0)->GetCameraLocation();
+		FVector Dir = camLoc - hpWidgetComp->GetComponentLocation();
+		Dir.Z=0;
+		hpWidgetComp->SetWorldRotation(Dir.GetSafeNormal().ToOrientationRotator());
+	}
+	
 }
 
 
@@ -197,24 +208,35 @@ void ANetClassProject_YJCharacter::Look(const FInputActionValue& Value)
 void ANetClassProject_YJCharacter::InitMainWidget()
 {
 	//플레이어가 제어중일때만 처리
+	PRINTLOG(TEXT("[%s] Begin"),Controller?TEXT("player"):TEXT("Not player"));
 
+	// 플레이어가 제어중 아니면 처리하지 않는다
 	if(GetController()==nullptr || !GetController()->IsLocalController()) return;
 
-	if(GetController()&& GetController()->IsLocalController())
+	auto Netpc = GetController<ANetPlayerController>();
+
+	if(Netpc->WBPmainUIwidget)
 	{
-		MainWidget_UI = CreateWidget<UMainWidget>(GetWorld(),WBP_mainWidget);
+		if(Netpc->MainWidget_UI ==nullptr) // 중복생성을 안하고 최초 한번만 하게됨 
+		{
+			Netpc->MainWidget_UI = CreateWidget<UMainWidget>(GetWorld(),Netpc->WBPmainUIwidget);
+		}
 
-		//예외처리를 잘하기 !
-
-		if (MainWidget_UI)
+		HP = MaxHP;
+		MainWidget_UI = Netpc->MainWidget_UI;
+		
+		if(MainWidget_UI)
 		{
 			MainWidget_UI->AddToViewport();
+
+			MainWidget_UI->HP =1.f;
 			MainWidget_UI->SetActivePistolUI(false);
 			MainWidget_UI->InitBulletUI(MaxBullectCount);
+
+			// 메인 ui 가 있으면 안보이도록 설정
+			hpWidgetComp->SetVisibility(false);
 		}
 	}
-	
-	
 }
 
 void ANetClassProject_YJCharacter::InitBullectWidget()
@@ -303,6 +325,7 @@ void ANetClassProject_YJCharacter::MyReleasePistol()
 		GrabPistolActor->SetOwner(nullptr);
 		GrabPistolActor = nullptr;
 	}*/
+	if(!bHasPistol||isReloading||!IsLocallyControlled()){return;}
 	ServerRPC_releasePistol();
 }
 
@@ -351,34 +374,69 @@ void ANetClassProject_YJCharacter::OnFirePistol(const FInputActionValue& value)
 	ServerRPC_Fire();
 }
 
-/*float ANetClassProject_YJCharacter::GetHP()
+void ANetClassProject_YJCharacter::OnRep_CurHp() // 클라이언트에서만 작동하는 함수
 {
-	return CurHP;
-}*/
 
-/*void ANetClassProject_YJCharacter::SetHP(float HP)
-{
-	CurHP=HP;
-	float hpPercent =CurHP/MaxHP;
-	//Cast<>()
-	if(MainWidget_UI)
+	// 여기서 죽는지 체크
+	if(CurHP<=0)
+	{
+		isDead = true;
+		if(bHasPistol)
+		{
+			OnGrabPistol(FInputActionValue());
+		}
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		GetCharacterMovement()->DisableMovement();
+	}
+	
+	float hpPercent = CurHP / MaxHP;
+
+	// MainWidget_UI create를 로컬에서만 하도록 만들었음
+	
+	if(MainWidget_UI) // 피격을 당하는 플레이어 로컬에서만 가짐 
 	{
 		MainWidget_UI->HP=hpPercent;
-	}
-	else
-	{
-		auto hpUI =Cast<UHealrhBarWidget>(hpWidgetComp->GetWidget());
-		hpUI->HP=hpPercent;
-	}
-}*/
+		MainWidget_UI->PlayDamageAnimation();
 
-void ANetClassProject_YJCharacter::DamageProcess()
+		if(damageCameraShake)
+		{
+			auto pc =GetController<APlayerController>();
+			if(pc)
+			{
+				pc->ClientStartCameraShake(damageCameraShake);
+			}
+		}
+		
+	}
+	// MainWidget_UI 없으면 다른 방에서의 피격을 당하는 플레이어
+	auto hpUI = Cast<UHealrhBarWidget>(hpWidgetComp->GetWidget());
+	if(hpUI)
+	{
+		hpUI->HP = hpPercent;
+	}
+}
+
+float ANetClassProject_YJCharacter::GetHP()
+{
+	return CurHP;
+}
+
+void ANetClassProject_YJCharacter::SetHP(float HP)
+{
+	CurHP=HP;
+	OnRep_CurHp(); // 서버쪽에서는 안불려서 따로 넣어줌
+}
+
+void ANetClassProject_YJCharacter::DamageProcess() // 이거를 서버에서만 작동함
 {
 	// 
 	//Server_SetHP();
 	//체력 감소
-	CurHP--;
-	if(CurHP<=0)
+	//CurHP--;
+	HP--;
+	if(HP<=0)
 	{
 		isDead=true;
 	}
@@ -552,6 +610,20 @@ void ANetClassProject_YJCharacter::Multicast_SetHP_Implementation()
 	
 }
 
+void ANetClassProject_YJCharacter::DieProcess()
+{
+	// ui 클릭하려면 마우스 보이도럭 . 이건 로컬에서만 실행하도록 설계됨
+	auto pc = GetController<APlayerController>();
+	if(pc)
+	{
+		pc->SetShowMouseCursor(true);
+	}
+	GetFollowCamera()->PostProcessSettings.ColorSaturation =FVector4(0,0,0,1);
+	// FVector4 = RGBA(0,0,0,1) !! 검정색이지만 내부적으로 회색처리 되어서 반투명으로 보이게 된다 !
+
+	MainWidget_UI->GameOverUI->SetVisibility(ESlateVisibility::Visible);
+}
+
 void ANetClassProject_YJCharacter::GetLifetimeReplicatedProps(
 	TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -562,6 +634,7 @@ void ANetClassProject_YJCharacter::GetLifetimeReplicatedProps(
 	DOREPLIFETIME(ANetClassProject_YJCharacter,curBullectCount);
 	DOREPLIFETIME(ANetClassProject_YJCharacter,isReloading);
 }
+
 
 
 
@@ -601,3 +674,17 @@ void ANetClassProject_YJCharacter::ClientRPC_Reload_Implementation()
 }
 
 
+void ANetClassProject_YJCharacter::PossessedBy(AController* NewController)
+{
+	PRINTLOG(TEXT("Begin"));
+	Super::PossessedBy(NewController);
+
+	// 이함수자체가 서버에서 실행 , 그리고 이후로 컨트롤러를 무조건 가지게됨
+
+	if(IsLocallyControlled())
+	{
+		InitMainWidget();
+	}
+	
+	PRINTLOG(TEXT("End"));
+}

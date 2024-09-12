@@ -52,3 +52,13 @@ void UNetTpsPlayerAnim::AnimNotify_OnMyReloadFinish()
 	// 총알 ui를 초기화
 	Me->InitBullectWidget();
 }
+
+void UNetTpsPlayerAnim::AnimNotify_DieEnd()
+{
+	// 죽음 애니는 누구나 다실행할것
+	// 그중 로컬플레이어는 화면 회색 등 다시하기등 사망처리 필요
+	if(Me && Me->IsLocallyControlled())
+	{
+		Me->DieProcess();
+	}
+}

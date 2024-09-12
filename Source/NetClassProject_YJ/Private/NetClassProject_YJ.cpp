@@ -4,4 +4,6 @@
 #include "Modules/ModuleManager.h"
 
 IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, NetClassProject_YJ, "NetClassProject_YJ" );
+
+DEFINE_LOG_CATEGORY(NetLog);
  

@@ -111,8 +111,8 @@ public:
 	UPROPERTY(EditDefaultsOnly,Category=Pistol)
 	class UParticleSystem* BullectFX;
 
-	UPROPERTY(EditDefaultsOnly,Category=Pistol)
-	TSubclassOf<class UUserWidget> WBP_mainWidget;
+	/*UPROPERTY(EditDefaultsOnly,Category=Pistol)
+	TSubclassOf<class UUserWidget> WBP_mainWidget;*/
 	
 	UPROPERTY(EditDefaultsOnly,Category=Pistol)
 	class UMainWidget* MainWidget_UI;
@@ -132,14 +132,17 @@ public:
 
 	// 체력
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category=HP)
-	float MaxHP =5;
+	float MaxHP =3;
 	
-	UPROPERTY(Replicated,VisibleAnywhere,BlueprintReadOnly,Category=HP)
+	UPROPERTY(ReplicatedUsing=OnRep_CurHp,VisibleAnywhere,BlueprintReadOnly,Category=HP)
 	float CurHP = MaxHP;
 
-	/*__declspec(property(get = GetHP,put = SetHP)) float HP;
+	UFUNCTION()
+	void OnRep_CurHp();
+
+	__declspec(property(get = GetHP,put = SetHP)) float HP;
 	float GetHP();
-	void SetHP(float HP);*/
+	void SetHP(float HP);
 
 	// __declspec 으로 선언으로 자동으로 HP = HP-1; 이런식으로 값을 set 하면 자동으로 선언한 SetHP 함수를 불러옴 
 	
@@ -153,6 +156,13 @@ public:
 	UPROPERTY(Replicated,EditDefaultsOnly,BlueprintReadOnly,Category=HP)
 	bool isDead=false;
 
+
+	UPROPERTY(EditDefaultsOnly,Category=UI)
+	TSubclassOf<class UCameraShakeBase> damageCameraShake;
+
+	// 죽음처리 - 화면을 회색으로 , 다시하기 ui
+	void DieProcess();
+	
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 	
@@ -191,6 +201,11 @@ public:
 	void MulticastRPC_Reload();
 	UFUNCTION(Server,Unreliable)
 	void serverRPC_InitBullect();
+
+	virtual void PossessedBy(AController* NewController) override;
+	// PossessedBy : 서버에서만 호출되는 함수 
+
+	
 };
 
 

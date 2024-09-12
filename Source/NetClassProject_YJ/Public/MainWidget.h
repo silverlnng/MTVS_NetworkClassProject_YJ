@@ -15,6 +15,9 @@ class NETCLASSPROJECT_YJ_API UMainWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
+
+	virtual void NativeConstruct() override;
+	
 	UPROPERTY(EditDefaultsOnly,meta=(BindWidget))
 	class UImage* Img_CrossHair;
 
@@ -43,4 +46,22 @@ public:
 
 	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite,Category=HP)
 	float HP =1.f;
+
+	//damage ui 애니메이션
+	UPROPERTY(EditDefaultsOnly,meta=(BindWidgetAnim),Transient,Category=MySettings)
+	UWidgetAnimation* DamageUIAni;
+
+	// 피격퍼리 ui 애니 실행시키는 함수
+	void PlayDamageAnimation();
+
+	UPROPERTY(BlueprintReadWrite,meta=(BindWidget))
+	class UHorizontalBox* GameOverUI;
+	UPROPERTY(BlueprintReadWrite,meta=(BindWidget))
+	class UButton* btn_Retry;
+	UPROPERTY(BlueprintReadWrite,meta=(BindWidget))
+	class UButton* btn_Exit;
+	UFUNCTION()
+	void OnRetry();
+	UFUNCTION()
+	void OnExit();
 };
