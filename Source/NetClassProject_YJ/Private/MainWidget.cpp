@@ -3,11 +3,14 @@
 
 #include "MainWidget.h"
 
+#include "NetGameInstance.h"
 #include "NetPlayerController.h"
 #include "Components/Button.h"
 #include "Components/HorizontalBox.h"
 #include "Components/Image.h"
 #include "Components/UniformGridPanel.h"
+
+class UNetGameInstance;
 
 void UMainWidget::NativeConstruct()
 {
@@ -105,4 +108,9 @@ void UMainWidget::OnRetry()
 
 void UMainWidget::OnExit()
 {
+	auto* gi = GetWorld()->GetGameInstance<UNetGameInstance>();
+	if(gi)
+	{
+		gi->ExitSession();
+	}
 }
