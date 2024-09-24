@@ -205,7 +205,15 @@ public:
 	virtual void PossessedBy(AController* NewController) override;
 	// PossessedBy : 서버에서만 호출되는 함수 
 
+	// 채팅을 요청
+	// 서버가 멀티캐스트
+	UFUNCTION(Server,Reliable)
+	void ServerRPC_Chat(const FString& msg);
+
+	UFUNCTION(NetMulticast,Reliable)
+	void MulticastRPC_Chat(const FString& msg);
 	
 };
+
 
 

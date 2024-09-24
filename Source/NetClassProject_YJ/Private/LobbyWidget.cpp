@@ -44,12 +44,27 @@ void ULobbyWidget::OnClickedGoMenu()
 
 void ULobbyWidget::MENU_OnClickedCreateRoom()
 {
+	// MENU_Edit_SessionName 를 게임인스턴스의
+
+	FString newsessioname = MENU_Edit_SessionName->GetText().ToString();
+	if (gi&&!newsessioname.IsEmpty())
+	{
+		gi->MySessionName=MENU_Edit_SessionName->GetText().ToString();
+	}
+
 	LobbyWidgetSwitcher->SetActiveWidgetIndex(1);
 }
 
 void ULobbyWidget::MENU_OnClickedGoFind()
 {
+	FString newsessioname = MENU_Edit_SessionName->GetText().ToString();
+	if (gi&&!newsessioname.IsEmpty())
+	{
+		gi->MySessionName=MENU_Edit_SessionName->GetText().ToString();
+	}
 	LobbyWidgetSwitcher->SetActiveWidgetIndex(2);
+
+	FS_OnClickedFindSession();
 }
 
 void ULobbyWidget::CR_OnClickedCreateRoomName()

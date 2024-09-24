@@ -30,7 +30,9 @@ public:
 	UPROPERTY(meta=(BindWidget))
 	class UButton* MENU_Btn_GoFind;
 
-
+	UPROPERTY(meta=(BindWidget))
+	class UEditableText* MENU_Edit_SessionName;
+	
 	UFUNCTION()
 	void MENU_OnClickedCreateRoom();
 

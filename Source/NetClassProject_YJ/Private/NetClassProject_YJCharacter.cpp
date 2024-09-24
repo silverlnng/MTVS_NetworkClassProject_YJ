@@ -17,6 +17,7 @@
 #include "MainWidget.h"
 #include "NetClassProject_YJ.h"
 #include "NetPlayerController.h"
+#include "NetPlayerState.h"
 #include "NetTpsPlayerAnim.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/HorizontalBox.h"
@@ -562,8 +563,13 @@ void ANetClassProject_YJCharacter::ServerRPC_Fire_Implementation()
 		{
 			//Server_SetHP(otherPlayer);
 			otherPlayer->DamageProcess();
-			// 클라이언트 방에서 클라이언트가 다른 플레이어에게하는게 동기화가 안됨
-			// 레이쏘는 것자체를 서버에서 ???
+
+			// 점수증가 시킴 
+			auto* ps =GetPlayerState<ANetPlayerState>();
+			if (ps)
+			{
+				ps->SetScore(ps->GetScore()+1);
+			}
 		}
 	}
 }
@@ -687,4 +693,19 @@ void ANetClassProject_YJCharacter::PossessedBy(AController* NewController)
 	}
 	
 	PRINTLOG(TEXT("End"));
+}
+
+void ANetClassProject_YJCharacter::ServerRPC_Chat_Implementation(const FString& msg)
+{
+	MulticastRPC_Chat(msg);
+}
+
+void ANetClassProject_YJCharacter::MulticastRPC_Chat_Implementation(const FString& msg)
+{
+	auto* pc= GetWorld()->GetFirstPlayerController<ANetPlayerController>();
+	// 메인 ui
+	if (pc->MainWidget_UI)
+	{
+		pc->MainWidget_UI->OnAddChatMessage(msg);
+	}
 }

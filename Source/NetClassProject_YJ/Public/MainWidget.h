@@ -60,8 +60,37 @@ public:
 	class UButton* btn_Retry;
 	UPROPERTY(BlueprintReadWrite,meta=(BindWidget))
 	class UButton* btn_Exit;
+	
+	UPROPERTY(meta=(BindWidget)) // 상대방 플레이어의 이름을 우측에 나열하고싶다
+	class UTextBlock* text_users;
+
+	////////////// 채팅창//////////////////
+	UPROPERTY(meta=(BindWidget))
+	class UScrollBox* Scroll_msgList;
+	UPROPERTY(meta=(BindWidget))
+	class UEditableText* EditTxt_Input;
+	UPROPERTY(meta=(BindWidget))
+	class UButton* btn_Send;
+
+	// send 버튼을 누르면 서버로 EditTxt_Input 으로 전송  serverRPC ==>플레이어컨트롤러
+	// serverRPC를 하면 multicast 으로 내용을 전달받음 ==> 플레이어컨트롤러
+	// 전달받은 메세지를 Scroll_msgList 에 맨위에 추가
+	// 전달받은 메세지를 chatWidget을 만들어서 Scroll_msgList에 추가하기
+	
+	/////////////////////////////////////////
+	
 	UFUNCTION()
 	void OnRetry();
 	UFUNCTION()
 	void OnExit();
+	UFUNCTION()
+	void OnClickChatSend();
+
+	void OnAddChatMessage(const FString& msg);
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<class UChatrWidget> ChatrWidgetFactory;
+	
+
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 };

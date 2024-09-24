@@ -57,7 +57,7 @@ void UNetGameInstance::CreateMySession(FString roomName, int32 playerCount)
 		// bAllowJoinViaPresence
 	FUniqueNetIdPtr netID = GetWorld()->GetFirstLocalPlayerFromController()->GetUniqueNetIdForPlatformUser().GetUniqueNetId();
 	
-	SessionInterface->CreateSession(*netID,FName(MySessionName),settings);
+	SessionInterface->CreateSession(*netID,FName(*MySessionName),settings);
 	
 	PRINTLOG(TEXT("Create Session Start ROOMNAME : %s | HOSTNAME :%s"),*roomName,*MySessionName);
 }

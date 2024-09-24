@@ -3,12 +3,19 @@
 
 #include "MainWidget.h"
 
+#include "ChatrWidget.h"
+#include "NetClassProject_YJCharacter.h"
 #include "NetGameInstance.h"
 #include "NetPlayerController.h"
 #include "Components/Button.h"
+#include "Components/EditableText.h"
 #include "Components/HorizontalBox.h"
 #include "Components/Image.h"
+#include "Components/ScrollBox.h"
+#include "Components/TextBlock.h"
 #include "Components/UniformGridPanel.h"
+#include "GameFramework/GameStateBase.h"
+#include "GameFramework/PlayerState.h"
 
 class UNetGameInstance;
 
@@ -17,6 +24,7 @@ void UMainWidget::NativeConstruct()
 	Super::NativeConstruct();
 	btn_Retry->OnClicked.AddDynamic(this,&UMainWidget::OnRetry);
 	btn_Exit->OnClicked.AddDynamic(this,&UMainWidget::OnExit);
+	btn_Send->OnClicked.AddDynamic(this,&UMainWidget::OnClickChatSend);
 }
 
 void UMainWidget::SetActivePistolUI(bool value)
@@ -113,4 +121,42 @@ void UMainWidget::OnExit()
 	{
 		gi->ExitSession();
 	}
+}
+
+void UMainWidget::OnClickChatSend()
+{
+	// 플레이어 찾아서 플레이어 통해서 rpc 를 하기
+	auto* player =Cast<ANetClassProject_YJCharacter>(GetWorld()->GetFirstPlayerController()->GetPawn());
+	if(player)
+	{
+		FString msg = EditTxt_Input->GetText().ToString();
+		if (!msg.IsEmpty())
+		{
+			player->ServerRPC_Chat(msg);
+		}
+	}
+}
+
+void UMainWidget::OnAddChatMessage(const FString& msg)
+{
+	// chatwidget을 생성하고 메세지를 반영하기
+	UChatrWidget* ChatUI =CreateWidget<class UChatrWidget>(GetWorld(),ChatrWidgetFactory);
+	ChatUI->txt_msg->SetText(FText::FromString(msg));
+	Scroll_msgList->AddChild(ChatUI);
+	Scroll_msgList->ScrollToEnd();
+}
+
+void UMainWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry , InDeltaTime);
+	TArray<TObjectPtr<APlayerState>> users = GetWorld()->GetGameState()->PlayerArray;
+
+	//플레이어들의 이름을 모아서 출력하기 
+	FString names;
+
+	for (APlayerState* user : users)
+	{
+		names.Append(FString::Printf(TEXT("%s : %d\n"),*user->GetPlayerName(),(int32)user->GetScore()));
+	}
+	text_users->SetText(FText::FromString(names));
 }
