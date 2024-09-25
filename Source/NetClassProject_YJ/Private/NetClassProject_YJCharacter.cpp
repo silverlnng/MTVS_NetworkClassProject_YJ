@@ -1,8 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "NetClassProject_YJCharacter.h"
-
-#include "AssetTypeCategories.h"
 #include "EngineUtils.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
