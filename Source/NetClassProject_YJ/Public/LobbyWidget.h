@@ -51,7 +51,9 @@ public:
 
 	UPROPERTY(meta=(BindWidget))
 	class UButton* CR_Btn_GoMenu;
-
+	
+	
+	
 	UFUNCTION()
 	void CR_OnClickedCreateRoomName();
 	UFUNCTION()
@@ -67,10 +69,16 @@ public:
 
 	UPROPERTY(meta=(BindWidget))
 	class UScrollBox* FS_Scrollbox;
+
+	UPROPERTY(meta=(BindWidget))
+	class UTextBlock* FS_Text_Finding;
 	
 	UFUNCTION()
 	void FS_OnClickedFindSession();
 
+	UFUNCTION() // 찾기 시도를 하면 FS_Text_Finding 보이게 , 버튼 FS_Btn_Find 을 비활성화 
+	void SetFindActive(bool value);
+	
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class USessionSlotWidget> SessionSlotWidgetFactory;
 

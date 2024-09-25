@@ -163,6 +163,9 @@ void ANetClassProject_YJCharacter::SetupPlayerInputComponent(UInputComponent* Pl
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &ANetClassProject_YJCharacter::OnFirePistol);
 		
 		EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Started, this, &ANetClassProject_YJCharacter::OnReloadPistol);
+
+		EnhancedInputComponent->BindAction(VoiceChatAction, ETriggerEvent::Started, this, &ANetClassProject_YJCharacter::StartVoiceChat);
+		EnhancedInputComponent->BindAction(VoiceChatAction, ETriggerEvent::Completed, this, &ANetClassProject_YJCharacter::CancelVoiceChat);
 	}
 	else
 	{
@@ -272,6 +275,16 @@ void ANetClassProject_YJCharacter::OnReloadPistol(const FInputActionValue& Value
 	anim->PlayReloadAnimMontage();
 	isReloading=true;*/
 	ServerRPC_Reload();
+}
+
+void ANetClassProject_YJCharacter::StartVoiceChat(const FInputActionValue& value)
+{
+	GetController<ANetPlayerController>()->StartTalking();
+}
+
+void ANetClassProject_YJCharacter::CancelVoiceChat(const FInputActionValue& value)
+{
+	GetController<ANetPlayerController>()->StopTalking();
 }
 
 

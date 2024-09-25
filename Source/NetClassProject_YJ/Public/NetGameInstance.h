@@ -38,6 +38,8 @@ struct FRoomInfo
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSearchSignature,const struct FRoomInfo&,Info);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FFindSignature,bool,value);
+
 // 파라미터의 타입, 파라미터 명
 UCLASS()
 class NETCLASSPROJECT_YJ_API UNetGameInstance : public UGameInstance
@@ -60,7 +62,7 @@ public:
 	void OnFindSessionComplete(bool bWasSuccessful);
 
 	FSearchSignature OnSearchSignatureCompleteDelegate;
-
+	FFindSignature OnFindSignatureCompleteDelegate;
 	// 방입장 요청 , 방입장 응답
 	void JoinSession(int32 index);
 	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type OnJoinSessionCompleteResultType);
@@ -75,6 +77,12 @@ public:
 	void MulticastRPCExitSession();
 
 	void OnDestroySessionComplete(FName SessionName, bool bWasSuccessful);
+
+	// 스팀으로 방생성시 한글 사용하면 한글이 깨지는 이슈 해결
+	FString StringBase64Encode(const FString& str);
 	
+	FString StringBase64Decode(const FString& str);
+
+	// 찾기를 위한 델리게이트
 };
 

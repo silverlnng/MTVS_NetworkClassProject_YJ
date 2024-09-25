@@ -3,6 +3,8 @@
 
 #include "NetGameInstance.h"
 
+#include <string>
+
 #include "NetClassProject_YJ.h"
 #include "OnlineSessionSettings.h"
 #include "OnlineSubsystem.h"
@@ -48,10 +50,12 @@ void UNetGameInstance::CreateMySession(FString roomName, int32 playerCount)
 
 	settings.NumPublicConnections = playerCount; // 최대명수
 
+	
+	
 	//커스텀 정보
 		// ROOM_NAME 을 매개변수인 roomName 으로 설정
-	settings.Set(FName("ROOM_NAME"),roomName,EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
-	settings.Set(FName("HOST_NAME"),MySessionName,EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
+	settings.Set(FName("ROOM_NAME"),StringBase64Encode(roomName),EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
+	settings.Set(FName("HOST_NAME"),StringBase64Encode(MySessionName),EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 	
 	//일반적으로 presence 는 상태 . 온라인 , 오프라인 등등...
 		// bAllowJoinViaPresence
@@ -90,6 +94,10 @@ void UNetGameInstance::FindSession()
 	
 	SessionInterface->FindSessions(0,SessionSearch.ToSharedRef());
 	
+	if (OnFindSignatureCompleteDelegate.IsBound())
+	{
+		OnFindSignatureCompleteDelegate.Broadcast(true);
+	}
 }
 
 void UNetGameInstance::OnFindSessionComplete(bool bWasSuccessful)
@@ -103,10 +111,14 @@ void UNetGameInstance::OnFindSessionComplete(bool bWasSuccessful)
 			if(!result_.IsValid()){continue;}
 
 			FRoomInfo roomInfo;
+			FString roomName;
 			// 방이름 , 호스트 이름 , 최대플레이어수 , 입장가능한 플레이어수 , ping 정보
-			result_.Session.SessionSettings.Get(FName("ROOM_NAME"),roomInfo.roonName);
-
-			result_.Session.SessionSettings.Get(FName("HOST_NAME"),roomInfo.hostName);
+			result_.Session.SessionSettings.Get(FName("ROOM_NAME"),roomName);
+			roomInfo.roonName =StringBase64Decode(roomName);
+			
+			FString hostName;
+			result_.Session.SessionSettings.Get(FName("HOST_NAME"),hostName);
+			roomInfo.hostName = StringBase64Decode(hostName);
 			
 			roomInfo.MaxplayerCount =result_.Session.SessionSettings.NumPublicConnections;
 			roomInfo.CurplayerCount = roomInfo.MaxplayerCount - result_.Session.NumOpenPublicConnections;
@@ -123,6 +135,11 @@ void UNetGameInstance::OnFindSessionComplete(bool bWasSuccessful)
 	else
 	{
 		PRINTLOG(TEXT("OnFindSessionComplete_Failed"));
+	}
+	
+	if (OnFindSignatureCompleteDelegate.IsBound())
+	{
+		OnFindSignatureCompleteDelegate.Broadcast(false);
 	}
 }
 
@@ -196,4 +213,23 @@ void UNetGameInstance::OnDestroySessionComplete(FName SessionName, bool bWasSucc
 		
 		// 서버는 방을파괴하고 로비로
 	}
+}
+
+FString UNetGameInstance::StringBase64Encode(const FString& str)
+{
+	// Set 할 때 : FString -> UTF8 (std::string) -> TArray<uint8> (바이트 배열 -> base64 로 Encode
+	std::string utf8String = TCHAR_TO_UTF8(*str);
+	TArray<uint8> arrayData = TArray<uint8>((uint8*)(utf8String.c_str()),
+	utf8String.length());
+	return FBase64::Encode(arrayData);
+
+}
+
+FString UNetGameInstance::StringBase64Decode(const FString& str)
+{
+	TArray<uint8> arrayData;
+	FBase64::Decode(str, arrayData);
+	std::string ut8String((char*)(arrayData.GetData()), arrayData.Num());
+	return UTF8_TO_TCHAR(ut8String.c_str());
+	// UTF8_TO_TCHAR 바이트 16
 }

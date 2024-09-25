@@ -21,7 +21,9 @@ void ULobbyWidget::NativeConstruct()
 	// 게임인스턴스를 가져오기
 	gi =GetWorld()->GetGameInstance<UNetGameInstance>();
 	gi->OnSearchSignatureCompleteDelegate.AddDynamic(this,&ULobbyWidget::AddSessionSlotWidget);
-
+	
+	gi->OnFindSignatureCompleteDelegate.AddDynamic(this,&ULobbyWidget::SetFindActive);
+	
 	MENU_Btn_GoCreate->OnClicked.AddDynamic(this,&ULobbyWidget::MENU_OnClickedCreateRoom);
 	MENU_Btn_GoFind->OnClicked.AddDynamic(this,&ULobbyWidget::MENU_OnClickedGoFind);
 	
@@ -34,7 +36,7 @@ void ULobbyWidget::NativeConstruct()
 	CR_Btn_GoMenu->OnClicked.AddDynamic(this,&ULobbyWidget::OnClickedGoMenu);
 	FS_Btn_GoMenu->OnClicked.AddDynamic(this,&ULobbyWidget::OnClickedGoMenu);
 	FS_Btn_Find->OnClicked.AddDynamic(this,&ULobbyWidget::FS_OnClickedFindSession);
-	
+	SetFindActive(false);
 }
 
 void ULobbyWidget::OnClickedGoMenu()
@@ -101,6 +103,8 @@ void ULobbyWidget::FS_OnClickedFindSession()
 	}
 }
 
+
+
 void ULobbyWidget::AddSessionSlotWidget(const struct FRoomInfo& info)
 {
 	//슬롯을 생성해서 스크롤 박스에 "추가 "하고 싶다
@@ -109,4 +113,18 @@ void ULobbyWidget::AddSessionSlotWidget(const struct FRoomInfo& info)
 	slot->UpdateInfo(info);
 
 	FS_Scrollbox->AddChild(slot);
+}
+
+void ULobbyWidget::SetFindActive(bool value)
+{
+	if(value) //찾기 시도중
+	{
+		FS_Text_Finding->SetVisibility(ESlateVisibility::Visible);
+		FS_Btn_Find->SetIsEnabled(false);
+	}
+	else // 찾기 끝
+	{
+		FS_Text_Finding->SetVisibility(ESlateVisibility::Hidden);
+		FS_Btn_Find->SetIsEnabled(true);
+	}
 }

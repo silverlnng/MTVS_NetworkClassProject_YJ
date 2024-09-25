@@ -54,6 +54,9 @@ class ANetClassProject_YJCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
     UInputAction* ReloadAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* VoiceChatAction;
+	
 	//  meta = (AllowPrivateAccess = "true") : private 멤버를 에디터에 보이도록 하는 설정 
 	
 public:
@@ -73,7 +76,8 @@ protected:
 	void MyReleasePistol();
 	void OnFirePistol(const FInputActionValue& value);
 	void OnReloadPistol(const FInputActionValue& value);
-	
+	void StartVoiceChat(const FInputActionValue& value);
+	void CancelVoiceChat(const FInputActionValue& value);
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
